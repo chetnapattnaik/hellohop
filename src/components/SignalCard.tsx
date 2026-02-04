@@ -8,7 +8,7 @@ import {
   LucideIcon 
 } from "lucide-react";
 
-export type SignalType = "burnout" | "pain" | "emotional" | "ready" | "neutral";
+export type SignalType = "burnout" | "pain" | "emotional" | "ready" | "neutral" | "consistency" | "nutrition";
 
 export interface Signal {
   type: SignalType;
@@ -43,6 +43,16 @@ const signalConfig: Record<SignalType, { icon: LucideIcon; bgClass: string; bord
     bgClass: "bg-muted", 
     borderClass: "border-border" 
   },
+  consistency: { 
+    icon: Activity, 
+    bgClass: "bg-sunrise-light", 
+    borderClass: "border-sunrise/30" 
+  },
+  nutrition: { 
+    icon: Heart, 
+    bgClass: "bg-lavender-light", 
+    borderClass: "border-lavender/30" 
+  },
 };
 
 interface SignalCardProps {
@@ -71,6 +81,8 @@ export function SignalCard({ signal, className }: SignalCardProps) {
           signal.type === "emotional" && "bg-lavender/10 text-lavender",
           signal.type === "ready" && "bg-sage/10 text-sage",
           signal.type === "neutral" && "bg-muted-foreground/10 text-muted-foreground",
+          signal.type === "consistency" && "bg-sunrise/10 text-sunrise",
+          signal.type === "nutrition" && "bg-lavender/10 text-lavender",
         )}>
           <Icon className="h-4 w-4" />
         </div>
@@ -96,6 +108,8 @@ export function SignalCard({ signal, className }: SignalCardProps) {
                 signal.type === "emotional" && "bg-lavender/60",
                 signal.type === "ready" && "bg-sage/60",
                 signal.type === "neutral" && "bg-muted-foreground/40",
+                signal.type === "consistency" && "bg-sunrise/60",
+                signal.type === "nutrition" && "bg-lavender/60",
               )}
               style={{ width: `${signal.intensity}%` }}
             />
