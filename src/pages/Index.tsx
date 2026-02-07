@@ -2,54 +2,61 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { ModeSelector, TranscriptionMode } from "@/components/ModeSelector";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
-import { SignalsGrid } from "@/components/SignalCard";
+import { SignalsGrid, Signal } from "@/components/SignalCard";
 import { ServiceRecommendation } from "@/components/ServiceRecommendation";
 import { CallerProfile } from "@/components/CallerProfile";
 import { AudioUploader } from "@/components/AudioUploader";
 import { CrmCopyButton } from "@/components/CrmCopyButton";
-import { useCallSimulation } from "@/hooks/useCallSimulation";
+import { useLiveTranscription } from "@/hooks/useLiveTranscription";
+import { useUploadTranscription } from "@/hooks/useUploadTranscription";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff, Sparkles, ArrowLeft } from "lucide-react";
+import { Phone, PhoneOff, Sparkles, AlertCircle } from "lucide-react";
+import type { Recommendation } from "@/types/transcription";
 
 const Index = () => {
   const [mode, setMode] = useState<TranscriptionMode | null>(null);
-  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
-  const {
-    isLive,
-    duration,
-    entries,
-    signals,
-    recommendations,
-    startCall,
-    endCall,
-    overallReadiness,
-  } = useCallSimulation();
+  // Live transcription
+  const live = useLiveTranscription();
+
+  // Upload transcription
+  const upload = useUploadTranscription();
+
+  // Determine active state based on mode
+  const isActive = mode === "live" ? live.isLive : upload.isDone;
+  const entries = mode === "live" ? live.entries : upload.entries;
+  const duration = mode === "live" ? live.duration : upload.duration;
+  const activeError = mode === "live" ? live.error : upload.error;
+
+  // Signals and recommendations are empty until AI analysis is added
+  const signals: Signal[] = [];
+  const recommendations: Recommendation[] = [];
 
   const handleBack = () => {
-    if (isLive) endCall();
+    if (mode === "live" && live.isLive) live.stopListening();
+    if (mode === "upload") upload.reset();
     setMode(null);
   };
 
   const handleFileSelected = (file: File) => {
-    setIsProcessingUpload(true);
-    // Simulate processing — replace with real transcription later
-    setTimeout(() => {
-      startCall();
-      setIsProcessingUpload(false);
-    }, 2000);
+    upload.transcribe(file);
   };
+
+  // Show dashboard when live is active, upload is processing, or upload is done
+  const showDashboard =
+    (mode === "live") ||
+    (mode === "upload" && (upload.isProcessing || upload.isDone));
 
   return (
     <div className="min-h-screen bg-background">
-      <Header isLive={isLive} mode={mode} onBack={mode ? handleBack : undefined} />
+      <Header isLive={live.isLive} mode={mode} onBack={mode ? handleBack : undefined} />
 
       <main className="container mx-auto px-6 py-6">
         {/* Mode Selection */}
         {!mode && <ModeSelector onSelect={setMode} />}
 
         {/* Upload Mode — file picker before dashboard */}
-        {mode === "upload" && !isLive && (
+        {mode === "upload" && !upload.isProcessing && !upload.isDone && (
           <div className="max-w-xl mx-auto mt-8 animate-fade-in">
             <h2 className="font-serif text-2xl font-medium text-foreground mb-1 text-center">
               Upload a Call Recording
@@ -59,13 +66,24 @@ const Index = () => {
             </p>
             <AudioUploader
               onFileSelected={handleFileSelected}
-              isProcessing={isProcessingUpload}
+              isProcessing={upload.isProcessing}
             />
           </div>
         )}
 
-        {/* Dashboard — shown when live (either mode) */}
-        {(mode === "live" || (mode === "upload" && isLive)) && (
+        {/* Error display */}
+        {activeError && (
+          <div className="max-w-xl mx-auto mt-4 rounded-xl border border-terracotta/30 bg-terracotta-light p-4 flex items-start gap-3 animate-fade-in">
+            <AlertCircle className="h-5 w-5 text-terracotta flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Something went wrong</p>
+              <p className="text-sm text-muted-foreground mt-1">{activeError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Dashboard */}
+        {showDashboard && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Panel - Transcript */}
             <div className="lg:col-span-7 flex flex-col">
@@ -78,29 +96,32 @@ const Index = () => {
                     </h2>
                     <p className="text-xs text-muted-foreground">
                       {mode === "live"
-                        ? "Conversation with prospect"
+                        ? "Transcribing your microphone in real time"
+                        : upload.isProcessing
+                        ? "Processing uploaded recording..."
                         : "Uploaded recording analysis"}
                     </p>
                   </div>
 
                   {mode === "live" && (
                     <>
-                      {!isLive ? (
+                      {!live.isLive ? (
                         <Button
-                          onClick={startCall}
+                          onClick={live.startListening}
+                          disabled={!live.isSupported}
                           className="gap-2 bg-sage hover:bg-sage/90 text-primary-foreground"
                         >
                           <Phone className="h-4 w-4" />
-                          Start Demo Call
+                          Start Listening
                         </Button>
                       ) : (
                         <Button
-                          onClick={endCall}
+                          onClick={live.stopListening}
                           variant="outline"
                           className="gap-2 border-terracotta/30 text-terracotta hover:bg-terracotta-light"
                         >
                           <PhoneOff className="h-4 w-4" />
-                          End Call
+                          Stop Listening
                         </Button>
                       )}
                     </>
@@ -109,7 +130,19 @@ const Index = () => {
 
                 {/* Transcript Content */}
                 <div className="flex-1 p-4 overflow-hidden">
-                  <TranscriptPanel entries={entries} />
+                  {upload.isProcessing ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                      <div className="h-12 w-12 rounded-full border-2 border-sage/30 border-t-sage animate-spin mb-4" />
+                      <p className="text-muted-foreground text-sm">
+                        Transcribing your recording...
+                      </p>
+                      <p className="text-muted-foreground/60 text-xs mt-1">
+                        This may take a moment depending on the file length
+                      </p>
+                    </div>
+                  ) : (
+                    <TranscriptPanel entries={entries} />
+                  )}
                 </div>
               </div>
             </div>
@@ -119,7 +152,7 @@ const Index = () => {
               {/* Caller Profile */}
               <CallerProfile
                 duration={duration}
-                overallReadiness={overallReadiness}
+                overallReadiness={0}
               />
 
               {/* Detected Signals */}
@@ -144,7 +177,9 @@ const Index = () => {
                 ) : (
                   <div className="py-8 text-center">
                     <p className="text-sm text-muted-foreground">
-                      Signals will appear as the conversation progresses...
+                      {isActive
+                        ? "AI signal detection coming soon..."
+                        : "Signals will appear as the conversation progresses..."}
                     </p>
                   </div>
                 )}
