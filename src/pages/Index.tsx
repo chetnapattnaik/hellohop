@@ -20,7 +20,7 @@ const Index = () => {
     duration,
     entries,
     signals,
-    recommendation,
+    recommendations,
     startCall,
     endCall,
     overallReadiness,
@@ -135,7 +135,7 @@ const Index = () => {
                   </div>
 
                   {signals.length > 0 && (
-                    <CrmCopyButton signals={signals} recommendation={recommendation} />
+                    <CrmCopyButton signals={signals} recommendations={recommendations} />
                   )}
                 </div>
 
@@ -150,13 +150,15 @@ const Index = () => {
                 )}
               </div>
 
-              {/* Service Recommendation */}
-              {recommendation && (
+              {/* Service Recommendations */}
+              {recommendations.length > 0 && (
                 <div className="space-y-3">
                   <h2 className="font-serif text-lg font-medium text-foreground px-1">
-                    Recommended Service
+                    Recommended Services
                   </h2>
-                  <ServiceRecommendation recommendation={recommendation} />
+                  {recommendations.map((rec, index) => (
+                    <ServiceRecommendation key={`${rec.service}-${index}`} recommendation={rec} />
+                  ))}
                 </div>
               )}
 

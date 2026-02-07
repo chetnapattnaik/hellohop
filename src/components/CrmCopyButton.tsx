@@ -3,12 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import { Signal } from "@/components/SignalCard";
 
-interface Recommendation {
-  service: string;
-  confidence: number;
-  reason: string;
-  suggestedApproach: string;
-}
+import { Recommendation } from "@/hooks/useCallSimulation";
 
 const serviceNames: Record<string, string> = {
   mental: "Mental Health",
@@ -20,10 +15,10 @@ const serviceNames: Record<string, string> = {
 
 interface CrmCopyButtonProps {
   signals: Signal[];
-  recommendation: Recommendation | null;
+  recommendations: Recommendation[];
 }
 
-function formatForCrm(signals: Signal[], recommendation: Recommendation | null): string {
+function formatForCrm(signals: Signal[], recommendations: Recommendation[]): string {
   const lines: string[] = [];
 
   lines.push("═══ HB+ Call Intelligence Summary ═══");
@@ -40,18 +35,16 @@ function formatForCrm(signals: Signal[], recommendation: Recommendation | null):
     lines.push("");
   }
 
-  if (recommendation) {
-    const name = serviceNames[recommendation.service] ?? recommendation.service;
-    lines.push("▸ RECOMMENDED SERVICE");
+  if (recommendations.length > 0) {
+    lines.push("▸ RECOMMENDED SERVICES");
     lines.push("─────────────────────");
-    lines.push(`Service: ${name}`);
-    lines.push(`Confidence: ${recommendation.confidence}%`);
-    lines.push("");
-    lines.push("Why this feels right:");
-    lines.push(recommendation.reason);
-    lines.push("");
-    lines.push("Suggested approach:");
-    lines.push(`"${recommendation.suggestedApproach}"`);
+    recommendations.forEach((rec, i) => {
+      const name = serviceNames[rec.service] ?? rec.service;
+      if (i > 0) lines.push("");
+      lines.push(`${i + 1}. ${name} — ${rec.confidence}% fit`);
+      lines.push(`   Why: ${rec.reason}`);
+      lines.push(`   Approach: "${rec.suggestedApproach}"`);
+    });
   }
 
   lines.push("");
@@ -61,15 +54,15 @@ function formatForCrm(signals: Signal[], recommendation: Recommendation | null):
   return lines.join("\n");
 }
 
-export function CrmCopyButton({ signals, recommendation }: CrmCopyButtonProps) {
+export function CrmCopyButton({ signals, recommendations }: CrmCopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    const text = formatForCrm(signals, recommendation);
+    const text = formatForCrm(signals, recommendations);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [signals, recommendation]);
+  }, [signals, recommendations]);
 
   return (
     <Button

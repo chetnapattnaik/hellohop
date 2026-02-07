@@ -10,7 +10,7 @@ interface TranscriptEntry {
   isPartial?: boolean;
 }
 
-interface Recommendation {
+export interface Recommendation {
   service: ServiceType;
   confidence: number;
   reason: string;
@@ -34,7 +34,7 @@ export function useCallSimulation() {
   const [duration, setDuration] = useState(0);
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [conversationIndex, setConversationIndex] = useState(0);
 
   const startCall = useCallback(() => {
@@ -42,7 +42,7 @@ export function useCallSimulation() {
     setDuration(0);
     setEntries([]);
     setSignals([]);
-    setRecommendation(null);
+    setRecommendations([]);
     setConversationIndex(0);
   }, []);
 
@@ -77,9 +77,9 @@ export function useCallSimulation() {
       // Update signals based on conversation progress
       updateSignalsForMessage(conversationIndex, setSignals);
       
-      // Update recommendation after enough context
+      // Update recommendations after enough context
       if (conversationIndex >= 5) {
-        updateRecommendation(conversationIndex, setRecommendation);
+        updateRecommendations(conversationIndex, setRecommendations);
       }
     }, conversationIndex === 0 ? 1500 : 3000 + Math.random() * 2000);
 
@@ -91,7 +91,7 @@ export function useCallSimulation() {
     duration,
     entries,
     signals,
-    recommendation,
+    recommendations,
     startCall,
     endCall,
     overallReadiness: Math.min(85, 20 + conversationIndex * 10),
@@ -178,23 +178,51 @@ function updateSignalsForMessage(
   }
 }
 
-function updateRecommendation(
+function updateRecommendations(
   index: number,
-  setRecommendation: React.Dispatch<React.SetStateAction<Recommendation | null>>
+  setRecommendations: React.Dispatch<React.SetStateAction<Recommendation[]>>
 ) {
   if (index >= 7) {
-    setRecommendation({
-      service: "restore",
-      confidence: 85,
-      reason: "They're dealing with chronic back pain that's preventing them from exercising, combined with burnout symptoms. Starting with Restore gives them a path to address the physical barrier first, in a non-intimidating environment. Once pain is managed, they'll be more ready for movement.",
-      suggestedApproach: "It sounds like your body has been sending you some signals. Before we talk about fitness, I'd love to introduce you to our Restore program — it's specifically for people who need to heal first. No intimidating gym floor, just gentle, guided work to get your back feeling better. Would that feel like a good starting point?",
-    });
+    setRecommendations([
+      {
+        service: "restore",
+        confidence: 85,
+        reason: "They're dealing with chronic back pain that's preventing them from exercising, combined with burnout symptoms. Starting with Restore gives them a path to address the physical barrier first, in a non-intimidating environment.",
+        suggestedApproach: "It sounds like your body has been sending you some signals. Before we talk about fitness, I'd love to introduce you to our Restore program — it's specifically for people who need to heal first. No intimidating gym floor, just gentle, guided work to get your back feeling better.",
+      },
+      {
+        service: "mental",
+        confidence: 78,
+        reason: "Burnout cycle with sleep issues, fatigue, and stress eating indicates significant emotional load. Addressing the mental health component alongside physical recovery will create more sustainable progress.",
+        suggestedApproach: "I'm also hearing that the stress and sleep issues have been weighing on you. We have a Mental Health program that gives you space to process what's going on — it pairs beautifully with physical recovery.",
+      },
+      {
+        service: "vault",
+        confidence: 72,
+        reason: "Their gym anxiety is a major barrier. Private training in The Vault removes the intimidation factor entirely and provides a safe environment to rebuild confidence with movement.",
+        suggestedApproach: "When you're ready to start moving again, The Vault is a completely private space — just you and a coach who meets you exactly where you are. No crowded gym floor, no judgment.",
+      },
+      {
+        service: "nutrition",
+        confidence: 60,
+        reason: "Stress eating pattern and disrupted sleep suggest nutritional support could help stabilise their energy and mood. Gut health directly impacts mental clarity and sleep quality.",
+        suggestedApproach: "You mentioned the stress eating — that's your body trying to cope. Our Nutrition program isn't about diets or restriction, it's about nourishing your gut so your energy and sleep can start improving naturally.",
+      },
+    ]);
   } else if (index >= 5) {
-    setRecommendation({
-      service: "vault",
-      confidence: 65,
-      reason: "Their gym anxiety suggests they'd benefit from a private, judgment-free environment. However, their back pain should be addressed first.",
-      suggestedApproach: "I'm hearing that the gym environment hasn't felt right for you. We have something called The Vault — it's completely private training, just you and a coach who meets you where you are...",
-    });
+    setRecommendations([
+      {
+        service: "vault",
+        confidence: 65,
+        reason: "Their gym anxiety suggests they'd benefit from a private, judgment-free environment. However, their back pain should be addressed first.",
+        suggestedApproach: "I'm hearing that the gym environment hasn't felt right for you. We have something called The Vault — it's completely private training, just you and a coach who meets you where you are...",
+      },
+      {
+        service: "restore",
+        confidence: 58,
+        reason: "Back pain from prolonged sitting is limiting their ability to exercise. Addressing the physical barrier early will set them up for success.",
+        suggestedApproach: "Your back pain sounds like it's been holding you back. Our Restore program is designed for exactly this — gentle, guided movement to help your body heal before pushing into anything intense.",
+      },
+    ]);
   }
 }
