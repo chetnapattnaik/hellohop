@@ -2,8 +2,7 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import { Signal } from "@/components/SignalCard";
-
-import { Recommendation } from "@/hooks/useCallSimulation";
+import type { Recommendation } from "@/types/transcription";
 
 const serviceNames: Record<string, string> = {
   mental: "Mental Health",

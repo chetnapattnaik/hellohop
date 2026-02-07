@@ -1,13 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-
-interface TranscriptEntry {
-  id: string;
-  speaker: "caller" | "prospect";
-  text: string;
-  timestamp: Date;
-  isPartial?: boolean;
-}
+import type { TranscriptEntry } from "@/types/transcription";
 
 interface TranscriptPanelProps {
   entries: TranscriptEntry[];
